@@ -45,9 +45,17 @@ import {
   Minimize2, 
   Tag, 
   EyeOff,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const nodeTypes = {
   reservoir: ReservoirNode,
@@ -288,6 +296,11 @@ function DesignerInner() {
         onExport={handleGenerateInp} 
         onSave={handleSave} 
         onLoad={handleLoadClick} 
+        onShowDiagram={() => {
+          const svg = generateSystemDiagram(nodes, edges, { showLabels });
+          setDiagramSvg(svg);
+          setShowDiagram(true);
+        }}
       />
 
       {/* Main Content Area */}
@@ -326,22 +339,6 @@ function DesignerInner() {
                     Network Locked
                   </div>
                 )}
-
-                <div className="absolute bottom-4 right-4 z-50 flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-white shadow-md rounded-full px-4"
-                    onClick={() => {
-                      const svg = generateSystemDiagram(nodes, edges, { showLabels });
-                      setDiagramSvg(svg);
-                      setShowDiagram(true);
-                    }}
-                    data-testid="button-show-diagram"
-                  >
-                    Console Diagram
-                  </Button>
-                </div>
               </div>
 
               {/* Properties Panel (Sidebar) */}
@@ -364,9 +361,45 @@ function DesignerInner() {
               <ResizablePanel defaultSize={25} minSize={isMaximized ? 100 : 10} className={cn(isMaximized && "flex-1")}>
                 <div className="h-full w-full bg-background overflow-hidden flex flex-col relative">
                   <div className="flex items-center justify-between p-3 border-b bg-card">
-                    <div className="flex items-center gap-2">
-                      <Info className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">System Diagram Console</h3>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Info className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">System Diagram Console</h3>
+                      </div>
+                      
+                      {/* Legend Popover */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 gap-2">
+                            Legend <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-4" align="start">
+                          <h4 className="text-xs font-bold uppercase mb-3 text-muted-foreground">Legend</h4>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-5 bg-[#3498db] border-2 border-[#2980b9] rounded" />
+                              <span className="text-xs font-medium">Reservoir (HW)</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-5 h-8 bg-[#f39c12] border-2 border-[#e67e22] rounded" />
+                              <span className="text-xs font-medium">Surge Tank (ST)</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-4 h-4 bg-[#e74c3c] border-2 border-[#c0392b] rounded-full" />
+                              <span className="text-xs font-medium">Junction</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[14px] border-l-[#2ecc71]" />
+                              <span className="text-xs font-medium">Flow Boundary</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-1 bg-[#3498db]" />
+                              <span className="text-xs font-medium">Conduit (Pipe)</span>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" onClick={() => setShowLabels(!showLabels)} title={showLabels ? "Hide Labels" : "Show Labels"}>
@@ -383,40 +416,30 @@ function DesignerInner() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex-1 flex overflow-hidden p-4 gap-4">
-                    <div className="flex-1 bg-white rounded-lg flex items-center justify-center overflow-auto min-h-[200px] shadow-inner"
-                      id="system-diagram-container"
-                      dangerouslySetInnerHTML={{ __html: diagramSvg || '' }}
-                    />
-                    
-                    {/* Legend */}
-                    <div className="w-64 border rounded-lg bg-card p-4 flex flex-col gap-4 overflow-auto shadow-sm">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase mb-3 text-muted-foreground">Legend</h4>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-5 bg-[#3498db] border-2 border-[#2980b9] rounded" />
-                            <span className="text-xs font-medium">Reservoir (HW)</span>
+                  <div className="flex-1 flex overflow-hidden p-4">
+                    <TransformWrapper
+                      initialScale={1}
+                      minScale={0.5}
+                      maxScale={4}
+                      centerOnInit
+                    >
+                      {({ zoomIn, zoomOut, resetTransform }) => (
+                        <div className="w-full h-full relative group">
+                          <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button size="icon" variant="secondary" className="w-8 h-8 rounded-full shadow-md" onClick={() => zoomIn()}>+</Button>
+                            <Button size="icon" variant="secondary" className="w-8 h-8 rounded-full shadow-md" onClick={() => zoomOut()}>-</Button>
+                            <Button size="icon" variant="secondary" className="w-8 h-8 rounded-full shadow-md" onClick={() => resetTransform()}>R</Button>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-5 h-8 bg-[#f39c12] border-2 border-[#e67e22] rounded" />
-                            <span className="text-xs font-medium">Surge Tank (ST)</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-4 h-4 bg-[#e74c3c] border-2 border-[#c0392b] rounded-full" />
-                            <span className="text-xs font-medium">Junction</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[14px] border-l-[#2ecc71]" />
-                            <span className="text-xs font-medium">Flow Boundary</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-1 bg-[#3498db]" />
-                            <span className="text-xs font-medium">Conduit (Pipe)</span>
-                          </div>
+                          <TransformComponent wrapperClassName="!w-full !h-full bg-white rounded-lg shadow-inner border" contentClassName="!w-full !h-full">
+                            <div 
+                              className="w-full h-full flex items-center justify-center p-8 cursor-grab active:cursor-grabbing"
+                              id="system-diagram-container"
+                              dangerouslySetInnerHTML={{ __html: diagramSvg || '' }}
+                            />
+                          </TransformComponent>
                         </div>
-                      </div>
-                    </div>
+                      )}
+                    </TransformWrapper>
                   </div>
                 </div>
               </ResizablePanel>
@@ -425,6 +448,14 @@ function DesignerInner() {
         </ResizablePanelGroup>
       </div>
     </div>
+  );
+}
+
+export default function Designer() {
+  return (
+    <ReactFlowProvider>
+      <DesignerInner />
+    </ReactFlowProvider>
   );
 }
 

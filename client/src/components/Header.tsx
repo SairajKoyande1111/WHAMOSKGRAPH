@@ -24,7 +24,8 @@ import {
   GitCommitHorizontal,
   ArrowRightCircle,
   ListVideo,
-  Layout
+  Layout,
+  Info
 } from 'lucide-react';
 import {
   Menubar,
@@ -65,9 +66,10 @@ interface HeaderProps {
   onExport: () => void;
   onSave: () => void;
   onLoad: () => void;
+  onShowDiagram?: () => void;
 }
 
-export function Header({ onExport, onSave, onLoad }: HeaderProps) {
+export function Header({ onExport, onSave, onLoad, onShowDiagram }: HeaderProps) {
   const { toast } = useToast();
   const { 
     addNode, 
@@ -90,9 +92,6 @@ export function Header({ onExport, onSave, onLoad }: HeaderProps) {
   const [selectedElementId, setSelectedElementId] = useState<string>("");
   const [selectedVars, setSelectedVars] = useState<string[]>([]);
   const [requestType, setRequestType] = useState<'HISTORY' | 'PLOT' | 'SPREADSHEET'>('HISTORY');
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [tempProjectName, setTempProjectName] = useState(projectName);
-  const [diagramOpen, setDiagramOpen] = useState(false);
 
   useEffect(() => {
     setLocalParams(computationalParams);
@@ -113,12 +112,6 @@ export function Header({ onExport, onSave, onLoad }: HeaderProps) {
     setSelectedElementId("");
     setSelectedVars([]);
     toast({ title: "Request Added", description: "Output request added successfully." });
-  };
-
-  const handleRename = () => {
-    setProjectName(tempProjectName);
-    setIsRenameOpen(false);
-    toast({ title: "Project Renamed", description: `Project name changed to ${tempProjectName}` });
   };
 
   const availableVars = ["Q", "HEAD", "ELEV", "VEL", "PRESS", "PIEZHEAD"];
@@ -196,10 +189,6 @@ export function Header({ onExport, onSave, onLoad }: HeaderProps) {
               <MenubarContent>
                 <MenubarItem>Full Screen</MenubarItem>
                 <MenubarItem>Show Grid</MenubarItem>
-                <MenubarSeparator />
-                <MenubarItem onClick={() => setDiagramOpen(true)} className="gap-2">
-                  <Layout className="w-4 h-4" /> System Diagram
-                </MenubarItem>
               </MenubarContent>
             </MenubarMenu>
 
@@ -227,6 +216,10 @@ export function Header({ onExport, onSave, onLoad }: HeaderProps) {
             <MenubarMenu>
               <MenubarTrigger className="text-[14px] font-normal h-7 text-black hover:bg-[#f1f3f4] data-[state=open]:bg-[#f1f3f4] px-2 rounded cursor-default">Tools</MenubarTrigger>
               <MenubarContent>
+                <MenubarItem onClick={onShowDiagram} className="gap-2">
+                  <Layout className="w-4 h-4" /> System Diagram Console
+                </MenubarItem>
+                <MenubarSeparator />
                 <Dialog>
                   <DialogTrigger asChild>
                     <MenubarItem onSelect={(e) => e.preventDefault()} className="gap-2">
@@ -381,30 +374,6 @@ export function Header({ onExport, onSave, onLoad }: HeaderProps) {
 
 
         <div className="ml-auto flex items-center gap-2 pr-4">
-          <Dialog open={diagramOpen} onOpenChange={setDiagramOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 px-4 rounded-full font-medium shadow-sm transition-all"
-              >
-                <Layout className="w-4 h-4 mr-2" />
-                System Diagram
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-5xl h-[80vh] flex flex-col">
-              <DialogHeader>
-                <DialogTitle>WHAMO System Diagram</DialogTitle>
-              </DialogHeader>
-              <div className="flex-1 bg-slate-50 border rounded-lg overflow-auto p-4 flex items-center justify-center">
-                <div 
-                  className="w-full h-full"
-                  dangerouslySetInnerHTML={{ __html: generateSystemDiagramSVG(nodes, edges) }} 
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-
           <Button 
             variant="default" 
             size="sm" 
